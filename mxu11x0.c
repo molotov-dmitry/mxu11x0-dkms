@@ -38,12 +38,7 @@
 #endif
 
 #include <linux/usb.h>
-
-#if(LINUX_VERSION_CODE < KERNEL_VERSION(2,6,18))
-#include "usb-serial.h"
-#else
 #include <linux/usb/serial.h>
-#endif
 
 #if(LINUX_VERSION_CODE < KERNEL_VERSION(4,11,0))
 #include <linux/sched.h>
@@ -123,12 +118,8 @@ struct mxu1_device {
 
 static int mxu1_startup(struct usb_serial *serial);
 
-#ifdef ASYNCB_FIRST_KERNEL
 static void mxu1_disconnect(struct usb_serial *serial);
 static void mxu1_release(struct usb_serial *serial);
-#else
-static void mxu1_shutdown(struct usb_serial *serial);
-#endif
 
 #if(LINUX_VERSION_CODE < KERNEL_VERSION(2,6,27))
 static int mxu1_open(struct usb_serial_port *port, struct file *file);
@@ -332,12 +323,8 @@ static struct usb_serial_driver mxu1110_1port_device = {
 	.num_ports		= 1,
 	.attach			= mxu1_startup,
 
-#ifdef ASYNCB_FIRST_KERNEL
 	.disconnect		= mxu1_disconnect,
 	.release		= mxu1_release,
-#else
-	.shutdown		= mxu1_shutdown,
-#endif
 	.open			= mxu1_open,
 	.close			= mxu1_close,
 	.write			= mxu1_write,
@@ -368,12 +355,8 @@ static struct usb_serial_driver mxu1130_1port_device = {
 	.id_table		= mxu1130_id_table,
 	.num_ports		= 1,
 	.attach			= mxu1_startup,
-#ifdef ASYNCB_FIRST_KERNEL
 	.disconnect		= mxu1_disconnect,
 	.release		= mxu1_release,
-#else
-	.shutdown		= mxu1_shutdown,
-#endif
 	.open			= mxu1_open,
 	.close			= mxu1_close,
 	.write			= mxu1_write,
@@ -405,12 +388,8 @@ static struct usb_serial_driver mxu1150_1port_device = {
 	.num_ports		= 1,
 	.attach			= mxu1_startup,
 	.open			= mxu1_open,
-#ifdef ASYNCB_FIRST_KERNEL
 	.disconnect		= mxu1_disconnect,
 	.release		= mxu1_release,
-#else
-	.shutdown		= mxu1_shutdown,
-#endif
 	.close			= mxu1_close,
 	.write			= mxu1_write,
 	.write_room		= mxu1_write_room,
@@ -440,12 +419,8 @@ static struct usb_serial_driver mxu1151_1port_device = {
 	.id_table		= mxu1151_id_table,
 	.num_ports		= 1,
 	.attach			= mxu1_startup,
-#ifdef ASYNCB_FIRST_KERNEL
 	.disconnect		= mxu1_disconnect,
 	.release		= mxu1_release,
-#else
-	.shutdown		= mxu1_shutdown,
-#endif
 	.open			= mxu1_open,
 	.close			= mxu1_close,
 	.write			= mxu1_write,
@@ -476,12 +451,8 @@ static struct usb_serial_driver mxu1131_1port_device = {
 	.id_table		= mxu1131_id_table,
 	.num_ports		= 1,
 	.attach			= mxu1_startup,
-#ifdef ASYNCB_FIRST_KERNEL
 	.disconnect		= mxu1_disconnect,
 	.release		= mxu1_release,
-#else
-	.shutdown		= mxu1_shutdown,
-#endif
 	.open			= mxu1_open,
 	.close			= mxu1_close,
 	.write			= mxu1_write,
@@ -513,12 +484,8 @@ static struct usb_serial_driver mxu3001_1port_device = {
 	.num_ports		= 1,
 	.attach			= mxu1_startup,
 
-#ifdef ASYNCB_FIRST_KERNEL
 	.disconnect		= mxu1_disconnect,
 	.release		= mxu1_release,
-#else
-	.shutdown		= mxu1_shutdown,
-#endif
 	.open			= mxu1_open,
 	.close			= mxu1_close,
 	.write			= mxu1_write,
@@ -856,8 +823,6 @@ free_mxdev:
 }
 
 
-#ifdef ASYNCB_FIRST_KERNEL
-
 static void mxu1_disconnect(struct usb_serial *serial)
 {
 	struct usb_serial_port *port = serial->port[0];
@@ -894,29 +859,6 @@ static void mxu1_release(struct usb_serial *serial)
 	usb_set_serial_data(serial, NULL);
 }
 
-#else
-
-static void mxu1_shutdown(struct usb_serial *serial)
-{
-	int i;
-	struct mxu1_device *mxdev = usb_get_serial_data(serial);
-	struct mxu1_port *mxport;
-
-	dbg("%s", __FUNCTION__);
-
-	for (i=0; i < serial->num_ports; ++i) {
-		mxport = usb_get_serial_port_data(serial->port[i]);
-		if (mxport) {
-			mxu1_buf_free(mxport->mxp_write_buf);
-			kfree(mxport);
-			usb_set_serial_port_data(serial->port[i], NULL);
-		}
-	}
-
-	kfree(mxdev);
-	usb_set_serial_data(serial, NULL);
-}
-#endif
 
 #if(LINUX_VERSION_CODE < KERNEL_VERSION(2,6,27))
 static int mxu1_open(struct usb_serial_port *port, struct file *file)
