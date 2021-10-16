@@ -214,8 +214,13 @@ static void mxu1_recv(struct mxu1_port *mxport,
 static void mxu1_send(struct mxu1_port *mxport);
 static int mxu1_set_mcr(struct mxu1_port *mxport, unsigned int mcr);
 static int mxu1_get_lsr(struct mxu1_port *mxport);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5,13,0))
+static void mxu1_get_serial_info2(struct tty_struct *tty,
+	struct serial_struct __user *ret_arg);
+#else
 static int mxu1_get_serial_info2(struct tty_struct *tty,
 	struct serial_struct __user *ret_arg);
+#endif
 static int mxu1_set_serial_info2(struct tty_struct *tty,
 	struct serial_struct __user *new_arg);
 static int mxu1_get_serial_info(struct mxu1_port *mxport,
@@ -2208,6 +2213,27 @@ free_data:
 }
 
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5,13,0))
+static void mxu1_get_serial_info2(struct tty_struct *tty,
+	struct serial_struct __user *ret_arg)
+{
+	struct mxu1_port *mxport;
+	struct usb_serial_port *port = tty->driver_data;
+
+	if (!ret_arg)
+		return;
+	
+	mxport = usb_get_serial_port_data(port);
+
+	ret_arg->type = PORT_16550A;
+	ret_arg->line = port->minor;
+	ret_arg->port = mxport->mxp_user_get_uart_mode;
+	ret_arg->flags = mxport->mxp_flags;
+	ret_arg->xmit_fifo_size = MXU1_WRITE_BUF_SIZE;
+	ret_arg->baud_base = tty_get_baud_rate(mxport->mxp_port->port.tty);
+	ret_arg->closing_wait = mxport->mxp_closing_wait;
+}
+#else
 static int mxu1_get_serial_info2(struct tty_struct *tty,
 	struct serial_struct __user *ret_arg)
 {
@@ -2229,6 +2255,7 @@ static int mxu1_get_serial_info2(struct tty_struct *tty,
 
 	return 0;
 }
+#endif
 
 
 static int mxu1_set_serial_info2(struct tty_struct *tty,
