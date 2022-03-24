@@ -154,8 +154,13 @@ static void mxu1_throttle(struct usb_serial_port *port);
 static void mxu1_unthrottle(struct usb_serial_port *port);
 static int mxu1_ioctl(struct usb_serial_port *port, struct file *file, unsigned int cmd, unsigned long arg);
 #else
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 14, 0))
 static int mxu1_write_room(struct tty_struct *tty);
 static int mxu1_chars_in_buffer(struct tty_struct *tty);
+#else
+static unsigned int mxu1_write_room(struct tty_struct *tty);
+static unsigned int mxu1_chars_in_buffer(struct tty_struct *tty);
+#endif
 static void mxu1_throttle(struct tty_struct *tty);
 static void mxu1_unthrottle(struct tty_struct *tty);
 #if(LINUX_VERSION_CODE < KERNEL_VERSION(2,6,39))
@@ -1129,7 +1134,11 @@ static int mxu1_write(struct tty_struct *tty, struct usb_serial_port *port, cons
 static int mxu1_write_room(struct usb_serial_port *port)
 {
 #else
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 14, 0))
 static int mxu1_write_room(struct tty_struct *tty)
+#else
+static unsigned int mxu1_write_room(struct tty_struct *tty)
+#endif
 {
 struct usb_serial_port *port = tty->driver_data;
 #endif
@@ -1141,8 +1150,10 @@ struct usb_serial_port *port = tty->driver_data;
 
 	dbg("%s - port %d", __FUNCTION__, port->port_number);
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 14, 0))
 	if (mxport == NULL)
 		return -ENODEV;
+#endif
 	
 	spin_lock_irqsave(&mxport->mxp_lock, flags);
 	room = mxu1_buf_space_avail(mxport->mxp_write_buf);
@@ -1150,14 +1161,25 @@ struct usb_serial_port *port = tty->driver_data;
 
 	dbg("%s - returns %d", __FUNCTION__, room);
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 14, 0))
 	return room;
+#else
+	if (room >= 0)
+		return (unsigned int)room;
+	else
+		return 0;
+#endif
 }
 
 #if(LINUX_VERSION_CODE < KERNEL_VERSION(2,6,27))
 static int mxu1_chars_in_buffer(struct usb_serial_port *port)
 {
 #else
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 14, 0))
 static int mxu1_chars_in_buffer(struct tty_struct *tty)
+#else
+static unsigned int mxu1_chars_in_buffer(struct tty_struct *tty)
+#endif
 {
 	struct usb_serial_port *port = tty->driver_data;
 #endif
@@ -1168,8 +1190,10 @@ static int mxu1_chars_in_buffer(struct tty_struct *tty)
 
 	dbg("%s - port %d", __FUNCTION__, port->port_number);
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 14, 0))
 	if (mxport == NULL)
 		return -ENODEV;
+#endif
 
 	spin_lock_irqsave(&mxport->mxp_lock, flags);
 	chars = mxu1_buf_data_avail(mxport->mxp_write_buf);
@@ -1177,7 +1201,14 @@ static int mxu1_chars_in_buffer(struct tty_struct *tty)
 
 	dbg("%s - returns %d", __FUNCTION__, chars);
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 14, 0))
 	return chars;
+#else
+	if (chars >= 0)
+		return (unsigned int)chars;
+	else
+		return 0;
+#endif
 }
 
 #if(LINUX_VERSION_CODE < KERNEL_VERSION(2,6,27))
