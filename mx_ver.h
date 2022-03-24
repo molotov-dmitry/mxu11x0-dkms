@@ -1,4 +1,4 @@
 #ifndef _MX_VER_H_
 #define _MX_VER_H_
-#define DRIVER_VERSION "5.2.1"
+#define DRIVER_VERSION "5.2.2"
 #endif
